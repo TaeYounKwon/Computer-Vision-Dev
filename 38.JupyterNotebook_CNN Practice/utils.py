@@ -4,7 +4,7 @@ from PIL import Image
 train_path = "./dataset/train_image"
 test_path  = "./dataset/test_image"
 
-# 이미즈 리사이즈 정사각형 만들기
+# Create Image resized square
 IMG_FORMAT = [".jpg", ".png", ".jpeg", ".JPG", ".PNG", ".JPEG" ]
 
 def expand2square(pil_image, background_color):
