@@ -24,14 +24,14 @@ class custom_dataset(Dataset) :
 
         image_path = self.file_path[item]
         label = image_path.split("\\")
-        label = int(label[3])
+        label = int(label[1])
 
         mo =  image_path.split("\\")
-        mo = mo[2]
+        mo = mo[0]
 
         img = Image.open(image_path).convert('RGB')
 
-        if mo == "train" :
+        if mo == "data/train" :
             pass
             if random.uniform(0,1) < 0.2 or img.getbands()[0] == 'L' :
                 # Random gray scale from 20%
