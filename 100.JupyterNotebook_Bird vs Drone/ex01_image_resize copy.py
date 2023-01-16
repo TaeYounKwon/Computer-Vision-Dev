@@ -16,7 +16,7 @@ def expand2square(pil_img, background_color) :
         result.paste(pil_img, ((height - width) // 2, 0))
         return result
 
-file_path = "./0110/raw_data"   # 위치 자신의 파일경로에 맞게 변경 필요 !!!
+file_path = "./dataset"   # 위치 자신의 파일경로에 맞게 변경 필요 !!!
 image_list = glob.glob(os.path.join(file_path, "*", "*"))
 folder_list = glob.glob(os.path.join(file_path, "*"))
 for create_folder in folder_list:

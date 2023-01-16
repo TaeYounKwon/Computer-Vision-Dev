@@ -34,7 +34,7 @@ class CustomDataset(Dataset) :
     def __len__(self):
         return len(self.all_path)
 
-
-# test = CustomDataset("./2023.01/01.06.d68_dl/dataset/train" , transform=None)
-# for i in test :
-#     print(i)
+# Debuggin Tools
+test = CustomDataset("./dataset/train" , transform=None)
+for i in test :
+    print(i)

@@ -20,5 +20,5 @@ def image_show(data_path):
     plt.barh(x_data, y_data, color="maroon", height= 0.3)
     plt.show()
 
-image_show("./0110/raw_data")  ## 경로 변경 필요 !!!!!!!!!!!!
+# image_show("./dataset/train")  ## 경로 변경 필요 !!!!!!!!!!!!
 
