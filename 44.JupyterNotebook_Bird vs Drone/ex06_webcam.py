@@ -1,104 +1,85 @@
-import numpy as np
-import torch
-import torch.nn
-import torchvision
-from torch.autograd import Variable
-from torchvision import transforms
-import PIL
 import cv2
+import torch
 import torchvision.models as models
 import torch.nn as nn
+import albumentations as A
+import torch.nn.functional as F
+from albumentations.pytorch.transforms import ToTensorV2
+from PIL import Image
+import numpy as np
+from torchvision import transforms
 
-# This is the Label
-Labels = {0:"p" , 1:"r", 2:"s"}
+#### 경고문, threshold ###
+warning_text = '[[ Warning ]]'
+threshold_num = 95
 
-# Let's preprocess the inputted frame
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+labels = {0:"bird" , 1:"drone"}
 
-data_transforms = transforms.Compose(
-    [
+data_transforms = transforms.Compose([
         transforms.Resize((224,224)),
-        transforms.RandomHorizontalFlip(),
+        transforms.CenterCrop(200),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ]
-)
-device = torch.device("cpu")  ##Assigning the Device which will do the calculation
-model = models.vgg11(pretrained=False)
-model.classifier[6] = nn.Linear(in_features= 4096, out_features= 3)
-model.load_state_dict(torch.load("4.pt",map_location=device))
-model = model.to(device)  # set where to run the model and matrix calculation
-model.eval()  # set the device to eval() mode for testing
+])
 
+######## 모델 수정#########
+model = models.mobilenet_v2(pretrained=False)
+model.classifier[1] = nn.Linear(in_features=1280, out_features=2)
+model.load_state_dict(torch.load("./0111/12nd.pt",map_location=device))
+model = model.to(device)
+model.eval()
 
-# Set the Webcam
-def Webcam_720p():
-    cap.set(3, 1280)
-    cap.set(4, 720)
+cap = cv2.VideoCapture(0)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 850)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 850)
 
+if cap.isOpened():
+  while True:
+    ret, frame = cap.read()
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    pil_img = Image.fromarray(frame)
+    input_img = data_transforms(pil_img).reshape([1,3,200,200]).to(device)
+    out = model(input_img)
+    softmax_result = F.softmax(out)
+    top1_prob, top1_label = torch.topk(softmax_result, 1)
 
-def argmax(prediction):
-    prediction = prediction.cpu()
-    prediction = prediction.detach().numpy()
-    top_1 = np.argmax(prediction, axis=1)
-    score = np.amax(prediction)
-    score = '{:6f}'.format(score)
-    prediction = top_1[0]
-    result = Labels[prediction]
+    # CCTV에 정확도(%) 표시 
+    acc = str(round(top1_prob.item()*100, 3)) + "%"
+    
+    # thresholed를 위한 정확도
+    acc_num = (round(top1_prob.item()*100, 3))
+    
+    # thresholed를 위한 레이블 이름
+    object_label = labels.get(int(top1_label))
 
-    return result, score
+    if (acc_num > threshold_num) & (object_label=='drone') :
+        cv2.putText(frame, warning_text, (150, 200), cv2.FONT_HERSHEY_DUPLEX, 2, (255, 0, 0),3)
+        print("Drone Appears!!!!")   
 
+    # label 이름 표시
+    cv2.putText(frame, labels.get(int(top1_label)), (10, 400), cv2.FONT_HERSHEY_DUPLEX, 2, (255, 255, 255), 1)
+    
+    # 정확도 표시
+    cv2.putText(frame, acc, (10, 450), cv2.FONT_HERSHEY_DUPLEX, 1, (255, 255 ,255 ), 1)
+    print(acc, labels.get(int(top1_label)))
 
-def preprocess(image):
-    image = PIL.Image.fromarray(image)  # Webcam frames are numpy array format
-    # Therefore transform back to PIL image
-    print(image)
-    image = data_transforms(image)
-    image = image.float()
-    # image = Variable(image, requires_autograd=True)
-    image = image.cpu()
-    image = image.unsqueeze(0)  # I don't know for sure but Resnet-50 model seems to only
-    # accpets 4-D Vector Tensor so we need to squeeze another
-    return image  # dimension out of our 3-D vector Tensor
-
-
-# Let's start the real-time classification process!
-
-cap = cv2.VideoCapture(0,cv2.CAP_DSHOW)  # Set the webcam
-Webcam_720p()
-
-fps = 0
-show_score = 0
-show_res = 'Nothing'
-sequence = 0
-
-while True:
-    ret, frame = cap.read()  # Capture each frame
-
-    if fps == 4:
-        image = frame[100:450, 150:570]
-        image_data = preprocess(image)
-        #print(image_data)
-        prediction = model(image_data)
-        print(prediction)
-        result, score= argmax(prediction)
-        score=float(score)
-        #print(type(score))
-        fps = 0
-        if score >= 0.5 :
-            show_res = result
-            show_score = score
-        else:
-            show_res = "Nothing"
-            show_score = score
-
-    fps += 1
-    cv2.putText(frame, '%s' % (show_res), (950, 250), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 3)
-    cv2.putText(frame, '(score = %.5f)' % (show_score), (950, 300), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-    cv2.rectangle(frame, (400, 150), (900, 550), (250, 0, 0), 2)
-    cv2.imshow("ASL SIGN DETECTER", frame)
-
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    cv2.imshow("Object Detectation", cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+   
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)    
+    if cv2.waitKey(25) == 27 : 
         break
+else:
+    print('영상 읽기 실패...')
 
 cap.release()
-cv2.destroyWindow("ASL SIGN DETECTER")
+cv2.destroyAllWindows()
+
+
+
+
+
+
+
+
+

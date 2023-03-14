@@ -12,13 +12,18 @@ def image_show(data_path):
         print("Image 개수 : ", y_data[-1], '\n')
 
     ###### plot
-    plt.subplots(figsize= (16,10))
+    plt.subplots(figsize= (10,6))
     plt.title("Data Information")
     plt.xlabel("No. of images")
     plt.ylabel("Type of Data")
 
     plt.barh(x_data, y_data, color="maroon", height= 0.3)
+    # plt.barh(x_data, y_data, color="maroon", height= 0.3)
+    # plt.barh(x_data, y_data, color="maroon", height= 0.3)
+    # plt.barh(x_data, y_data, color="maroon", height= 0.3)
     plt.show()
 
-# image_show("./dataset/train")  ## 경로 변경 필요 !!!!!!!!!!!!
-
+image_show("./0110/raw_data")  ## 경로 변경 필요 !!!!!!!!!!!!
+image_show("./0110/dataset/train")
+image_show("./0110/dataset/val")
+image_show("./0110/dataset/test")

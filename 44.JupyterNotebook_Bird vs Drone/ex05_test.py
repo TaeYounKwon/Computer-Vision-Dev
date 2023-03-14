@@ -12,33 +12,31 @@ import pandas as pd
 from tqdm import tqdm
 from torchvision import models
 from timm.loss import LabelSmoothingCrossEntropy
-
+from ex04_main import FIX
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-def main():
+def test_main():
     test_aug = A.Compose([
         A.SmallestMaxSize(max_size= 224),
-        A.Resize(width= 200, height= 200),
-        # A.CenterCrop(width= 180, height= 180),
+        A.CenterCrop(width= 200, height= 200),
         A.Normalize(mean=(0.485, 0.456, 0.406), std= (0.229, 0.224, 0.225)),
         ToTensorV2()
     ])
 
-    test_dataset  = CustomDataset("./dataset/test" , transform= test_aug)
-    test_loader = DataLoader(test_dataset, batch_size= 1, shuffle= False, num_workers= 2, pin_memory= True)
-
+    test_dataset = CustomDataset("./0111/dataset/test" , transform= test_aug)
+    test_loader  = DataLoader(test_dataset, batch_size= 1, shuffle= False, num_workers= 2, pin_memory= True)
 
     ###### 수정해야 할 부분 !!!!!!!!!!!!!!!!!!!
-
-    # model = models.__dict__["resnet50"](pretrained=False)
-    model = models.__dict__["resnet50"](pretrained= False)
-    model.fc = nn.Linear(in_features= 2048, out_features= 3)
-
-    model.load_state_dict(torch.load("./best.pt", map_location=device))
+    model = models.mobilenet_v2(pretrained= False)
+    model.classifier[1] = nn.Linear(in_features=1280, out_features= 2)
+    model.load_state_dict(torch.load(f"./0111/12nd.pt", map_location=device))
     model.to(device)
 
-    criterion = LabelSmoothingCrossEntropy()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=0.0001)
+    # model = models.__dict__["resnet50"](pretrained= False)
+    # model.fc = nn.Linear(in_features= 2048, out_features= 2)
+    # model.load_state_dict(torch.load(f"./0111/best{str(FIX)}.pt", map_location=device))
+    # model.to(device)
+
     test(model, test_loader, device)
 
 def acc_function(correct, total) :
@@ -60,4 +58,4 @@ def test(model, data_loader, device) :
         print(f"acc >> {acc}%" )
 
 if __name__ == '__main__':
-    main()
+    test_main()
